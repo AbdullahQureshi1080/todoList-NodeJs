@@ -1,12 +1,13 @@
-// Imports
-const express = require("express");
-const bodyParser = require("body-parser");
-// const https = require("https");
-// const request = require("request");
-const alert = require("alert");
-const date = require(__dirname + "/date.js");
+//*************Imports
 
-// console.log(date());
+// Server
+const express = require("express");
+
+// Node JS Body Passing Middleware
+const bodyParser = require("body-parser");
+
+// Import our own date module
+const date = require(__dirname + "/date.js");
 
 const app = express();
 
@@ -16,17 +17,19 @@ let workItems = [];
 // Using EJS Tempelate
 app.set("view engine", "ejs");
 
+// parses the request, asscessed by req.body
 app.use(bodyParser.urlencoded({ extented: true }));
 app.use(express.static("public"));
 
+// Main List Route - Home
 app.get("/", function (req, res) {
-  let day = date();
+  const day = date.getDate();
   res.render("list", { listTitle: day, newListItems: items });
 });
 
 app.post("/", function (req, res) {
   console.log(req.body);
-  let item = req.body.newItem;
+  const item = req.body.newItem;
 
   if (req.body.list === "Work") {
     workItems.push(item);
@@ -37,16 +40,18 @@ app.post("/", function (req, res) {
   }
 });
 
+// Work List Route
 app.get("/work", function (req, res) {
   res.render("list", { listTitle: "Work List", newListItems: workItems });
 });
 
 app.post("/work", function (req, res) {
-  let item = req.body.newItem;
+  const item = req.body.newItem;
   workItems.push(item);
   res.redirect("/work");
 });
 
+// About Route - extra test for ejs tempelating and reuse
 app.get("/about", function (req, res) {
   res.render("about");
 });
