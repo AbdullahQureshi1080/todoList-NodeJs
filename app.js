@@ -1,4 +1,4 @@
-//*************Imports
+// ***************************  IMPORTS  ************************
 
 // Server
 const express = require("express");
@@ -9,13 +9,13 @@ const bodyParser = require("body-parser");
 // DB Driver
 const mongoose = require("mongoose");
 
+// lodash
+const _= require("lodash");
+
 // Import our own date module
 // const date = require(__dirname + "/date.js");
 
 const app = express();
-
-// let items = ["Buy Food", "Cook Food", "Eat Food"];
-let workItems = [];
 
 // Using EJS Tempelate
 app.set("view engine", "ejs");
@@ -27,11 +27,19 @@ mongoose.connect("mongodb://localhost:27017/todoListDB", {
   useNewUrlParser: true,
 });
 
+
+// ***************************  DB CONFIG - MONGOOSE ************************
+
 const itemsScheme = {
   name: String,
 };
 
+const listScheme = {
+  name: String,
+  items: [itemsScheme],
+};
 const Item = mongoose.model("Item", itemsScheme);
+const List = mongoose.model("List", listScheme);
 
 const item1 = new Item({
   name: "Welcome to your todo List.",
@@ -45,19 +53,8 @@ const item3 = new Item({
 
 const defaultItems = [item1, item2, item3];
 
-// delete Route
 
-app.post("/delete", function (req, res) {
-  const checkedItemId = req.body.checkbox;
-  Item.findByIdAndRemove(checkedItemId, function (err) {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log("Success in deleteing the item");
-      res.redirect("/");
-    }
-  });
-});
+// *************************** ROUTES ************************
 
 // Main List Route - Home
 app.get("/", function (req, res) {
@@ -80,24 +77,74 @@ app.get("/", function (req, res) {
 });
 
 app.post("/", function (req, res) {
-  console.log(req.body);
+  // console.log(req.body);
   const itemName = req.body.newItem;
+  const listName = req.body.list;
   const item = new Item({
     name: itemName,
   });
-  item.save();
-  res.redirect("/");
+
+  if (listName === "Today") {
+    item.save();
+    res.redirect("/");
+  } else {
+    List.findOne({ name: listName }, function (err, foundList) {
+      foundList.items.push(item);
+      foundList.save();
+      res.redirect("/" + listName);
+    });
+  }
 });
 
-// Work List Route
-app.get("/work", function (req, res) {
-  res.render("list", { listTitle: "Work List", newListItems: workItems });
+// Dynamic List Route
+app.get("/:customListName", function (req, res) {
+  const customListName = _.capitalize(req.params.customListName);
+  List.findOne({ name: customListName }, function (err, foundList) {
+    if (!err) {
+      if (!foundList) {
+        // Create a new List
+        const list = new List({
+          name: customListName,
+          items: defaultItems,
+        });
+
+        list.save();
+        res.redirect("/" + customListName);
+      } else {
+        // Show a existing List
+        console.log("Exists");
+        res.render("list", {
+          listTitle: foundList.name,
+          newListItems: foundList.items,
+        });
+      }
+    }
+  });
 });
 
-app.post("/work", function (req, res) {
-  const item = req.body.newItem;
-  workItems.push(item);
-  res.redirect("/work");
+// delete Route
+app.post("/delete", function (req, res) {
+  const checkedItemId = req.body.checkbox;
+  const listName = req.body.listName;
+
+  if (listName === "Today") {
+    Item.findByIdAndRemove(checkedItemId, function (err) {
+      if (!err) {
+        console.log("Successfully deleted an item");
+        res.redirect("/");
+      }
+    });
+  } else {
+    List.findOneAndUpdate(
+      { name: listName },
+      { $pull: { items: { _id: checkedItemId } } },
+      function (err, foundList) {
+        if (!err) {
+          res.redirect("/" + listName);
+        }
+      }
+    );
+  }
 });
 
 // About Route - extra test for ejs tempelating and reuse
