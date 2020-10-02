@@ -58,8 +58,6 @@ const defaultItems = [item1, item2, item3];
 
 // Main List Route - Home
 app.get("/", function (req, res) {
-  // const day = date.getDate();
-
   Item.find({}, function (err, foundItems) {
     if (foundItems.length === 0) {
       Item.insertMany(defaultItems, function (err) {
@@ -77,7 +75,6 @@ app.get("/", function (req, res) {
 });
 
 app.post("/", function (req, res) {
-  // console.log(req.body);
   const itemName = req.body.newItem;
   const listName = req.body.list;
   const item = new Item({
@@ -147,10 +144,6 @@ app.post("/delete", function (req, res) {
   }
 });
 
-// About Route - extra test for ejs tempelating and reuse
-app.get("/about", function (req, res) {
-  res.render("about");
-});
 
 app.listen(3000, function () {
   console.log("Server is Up");
